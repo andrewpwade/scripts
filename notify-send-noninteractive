@@ -1,0 +1,18 @@
+#!/bin/bash
+
+# Adapted from http://tomthegeek.blogspot.co.uk/2008/11/pop-up-notification-of-software-raid.html
+
+ICON=/usr/share/icons/Humanity/status/48/dialog-warning.svg
+
+XFCESESS=$(ps -e -o user:30,pid,cmd | grep -m1 -G "[x]fce4-session" | tr -s " ")
+if [[ -z "$XFCESESS" ]]; then
+    exit
+fi
+ACTUALUSER=$(echo "$XFCESESS" | cut -d " " -f 1)
+XFCEPID=$(echo "$XFCESESS" | cut -d " " -f 2)
+
+export DISPLAY=$(grep -z "DISPLAY=" /proc/${XFCEPID}/environ | sed -e "s/DISPLAY=//")
+export DBUS_SESSION_BUS_ADDRESS=$(grep -z "DBUS_SESSION_BUS_ADDRESS=" /proc/${XFCEPID}/environ | sed -e "s/DBUS_SESSION_BUS_ADDRESS=//") 
+
+sudo -u $ACTUALUSER /usr/bin/notify-send -u critical -c device.error -i $ICON -t 0 "Alert" "$*"
+
