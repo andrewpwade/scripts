@@ -15,7 +15,7 @@ TRIES=5
 
 until [ "$TRIES" -eq 0 ]; do
     if hdparm -C $DISK|grep -q '\sstandby$'; then
-	# alrady powered off
+	# already powered off
 	exit
     fi
     hdparm -y $DISK >/dev/null
