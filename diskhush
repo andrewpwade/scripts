@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# Power down a disk using hdparm, trying up to 5 times. Ignores
+# devices already powered down.
+
+set -u
+
+if [[ $UID -ne 0 ]]; then
+    echo "must be root"
+    exit 1
+fi
+
+DISK=$1
+TRIES=5
+
+until [ "$TRIES" -eq 0 ]; do
+    if hdparm -C $DISK|grep -q '\sstandby$'; then
+	# alrady powered off
+	exit
+    fi
+    hdparm -y $DISK >/dev/null
+    let tries--
+done
+
