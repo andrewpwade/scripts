@@ -1,0 +1,137 @@
+#!/bin/bash
+#
+# A wrapper around rsnapshot that performs a config check prior to
+# backing up and creates a 'dates' directory under the snapshot root
+# with symlinks named after the date/time the backup completed.
+#
+set -e
+
+#### Configurables ######
+
+# default path if not supplied with -f
+RSNAPSHOT_CONFIG=/etc/rsnapshot.conf
+
+RSNAPSHOT_OPTS="-v"
+
+# controls the names of the symlinks to the backups. See 'man date'
+# for acceptable formats.
+LINK_DATE_FORMAT="%F_%H-%M-%S"
+
+#########################
+
+BACKUP_LEVEL=
+TIMESTAMP_PATH=
+DRY_RUN=
+SNAPSHOT_ROOT=
+
+function usage()
+{
+    cat <<EOF
+usage: $0 [options] -l <backuplevel>
+
+OPTIONS:
+   -h      Show this message
+   -f      rsnapshot config file (optional)
+   -l      backup level to pass to rsnapshot
+   -n      Dry-run mode; run rsnapshot in test mode and skip making date symlinks (optional)
+EOF
+}
+
+
+function die()
+{
+    echo $@ 1>&2
+    exit 1
+}
+
+function warn()
+{
+    echo "WARN: $@" 1>&2
+}
+
+
+function make_indexes()
+{
+    # Find 'TIMESTAMP' files, read the contents, and create a symlink in a
+    # YY-MM-DD_HH-MM-SS format to the folder in which the TIMESTAMP file
+    # was found.
+    #
+    # Moves symlinks atomically by creating new links in 'dates.new' and
+    # then moving using 'mv -Tf' to 'dates'
+    local timestamp=
+    (
+	cd "$SNAPSHOT_ROOT"
+	mkdir -p dates.new
+	mkdir -p dates
+	for file in $(find . -maxdepth 2 -name TIMESTAMP); do
+	    timestamp=$(cat $file)
+	    if [ -z "$timestamp" ]; then
+		continue
+	    fi
+	    ( cd dates.new ; ln -s "../$(dirname $file)" $(date -d@$timestamp "+${LINK_DATE_FORMAT}") )
+	done
+	cd dates.new
+	for file in *; do
+	    mv -Tf $file ../dates/$file
+	done
+	cd - > /dev/null
+	rm -r ./dates.new
+    )
+}
+
+if [[ $EUID -ne 0 ]]; then
+    die "Must be run as root"
+fi
+
+while getopts "hf:l:n" opt; do
+    case $opt in
+	h)
+	    usage
+	    exit 0
+	    ;;
+	f)
+	    RSNAPSHOT_CONFIG="$OPTARG"
+	    ;;
+	l)
+	    BACKUP_LEVEL=$OPTARG
+	    ;;
+	n)
+	    DRY_RUN=1
+	    ;;
+	\?)
+	    usage
+	    exit 1
+	    ;;
+    esac
+done
+
+set -u
+
+if [[ -z $BACKUP_LEVEL ]]; then
+    die "backup level (-l <level>) is required"
+fi
+
+if [[ ! -z $DRY_RUN ]]; then
+    RSNAPSHOT_OPTS="${RSNAPSHOT_OPTS} -t"
+fi
+
+if [[ ! -z $RSNAPSHOT_CONFIG ]]; then
+    RSNAPSHOT_OPTS="${RSNAPSHOT_OPTS} -c $RSNAPSHOT_CONFIG"
+fi
+
+SNAPSHOT_ROOT=$(egrep '^snapshot_root\s+\/' "$RSNAPSHOT_CONFIG" | awk '{print $2}')
+TIMESTAMP_PATH="${SNAPSHOT_ROOT}/${BACKUP_LEVEL}.0/TIMESTAMP"
+
+if [[ -z "$SNAPSHOT_ROOT" ]]; then
+    die "Could not parse snapshot_root setting in $RSNAPSHOT_CONFIG"
+fi
+
+rsnapshot configtest >/dev/null
+rsnapshot $RSNAPSHOT_OPTS $BACKUP_LEVEL
+
+if [[ -z $DRY_RUN ]]; then
+    if [[ ! -e "$TIMESTAMP_PATH" ]]; then
+	printf $(date +%s) > "$TIMESTAMP_PATH" || true
+    fi
+    make_indexes || warn "Failed to make indexes"
+fi
