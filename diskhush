@@ -19,6 +19,6 @@ until [ "$TRIES" -eq 0 ]; do
 	exit
     fi
     hdparm -y $DISK >/dev/null
-    let tries--
+    let TRIES--
 done
 
