@@ -70,12 +70,9 @@ function make_indexes()
 	    fi
 	    ( cd dates.new ; ln -s "../$(dirname $file)" $(date -d@$timestamp "+${LINK_DATE_FORMAT}") )
 	done
-	cd dates.new
-	for file in *; do
-	    mv -Tf $file ../dates/$file
-	done
+	find ./dates -type l -delete
+	mv dates.new/* dates
 	cd - > /dev/null
-	rm -r ./dates.new
     )
 }
 
