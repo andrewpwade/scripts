@@ -1,0 +1,8 @@
+#!/bin/bash
+#
+# print a table of RSS usage per user, reverse sorted by total RSS.
+#
+
+for ruser in $(ps -o "%u" --no-header -A|sort -u); do
+    echo -e "$ruser,$(ps -U $ruser --no-headers  -o rss | awk '{n+=$1}END{printf "%.2f MB", n/1024}')\n"
+done | sort -r -k2 | column -s, -t
