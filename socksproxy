@@ -1,0 +1,41 @@
+#!/bin/sh
+#
+# Set up SOCKS proxying on the wifi interface.
+#
+# usage: ./sockproxy <host>
+#
+set -u
+
+PROXYHOST=$1
+SSH_OPTS="-o ConnectTimeout=10 -o ServerAliveInterval=5"
+PORT=9999
+
+start_proxy() 
+{
+    sudo networksetup -setsocksfirewallproxy Wi-Fi 127.0.0.1 $PORT
+    sudo networksetup -setsocksfirewallproxystate Wi-Fi on
+}
+
+stop_proxy() {
+    sudo networksetup -setsocksfirewallproxystate Wi-Fi off
+}
+
+cleanup_exit()
+{
+    stop_proxy
+    exit $?
+}
+
+trap cleanup_exit INT TERM
+
+if ! start_proxy; then
+    echo "Failed to enable proxy"
+    exit 1
+fi
+
+while :; do 
+    ssh $SSH_OPTS -ND $PORT $PROXYHOST
+    sleep 1
+done
+
+cleanup
