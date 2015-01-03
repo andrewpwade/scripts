@@ -5,16 +5,18 @@ desktop notification when it changes.
 
 Requires gem 'terminal-notifier' (sudo gem install terminal-notifier --no-ri --no-rdoc)
 
-This can be run as a background job by creating file ~/Library/LaunchAgents/com.whatever.osx.mon_ext_ip.plist with contents:
+This can be run as a background job by creating file
+~/Library/LaunchAgents/com.whatever.osx.mon_ext_ip.plist with contents
+(replacing /path/to/monitor_ext_ip.py with the actual path):
 
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC -//Apple Computer//DTD PLIST 1.0//EN http://www.apple.com/DTDs/PropertyList-1.0.dtd >
 <plist version="1.0">
   <dict>
     <key>Label</key>
-    <string>com.andrew.osx.test</string>
+    <string>com.whatever.osx.test</string>
     <key>Program</key>
-    <string>/Users/andrew/bin/monitor_ext_ip.py</string>
+    <string>/path/to/monitor_ext_ip.py</string>
     <key>KeepAlive</key>
     <true/>
   </dict>
