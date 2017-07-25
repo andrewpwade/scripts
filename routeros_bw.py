@@ -6,18 +6,16 @@ relatively.
 
 ./routeros_bw.py <router_ip>
 
-requires the 'requests' package
-
 See https://wiki.mikrotik.com/wiki/Manual:IP/Accounting for how to
 configure IP Accounting *AND* web access.
 
 """
 import time
 import curses
-import requests
 import ipaddress
 import socket
 import sys
+import urllib.request
 from collections import defaultdict
 
 ROUTER_HOSTNAME = sys.argv[1]
@@ -25,20 +23,20 @@ ROUTER_HOSTNAME = sys.argv[1]
 
 def get_stats():
     url = "http://%s/accounting/ip.cgi" % ROUTER_HOSTNAME
-    resp = requests.get(url)
-    resp.raise_for_status()
-    data = resp.text.splitlines()
-    data = [l.split() for l in data if l]
-    # just [src, dst, bytes]
-    data = [l[:2] + [float(l[2])] for l in data]
-    # sum bytes by ip
-    rv = defaultdict(int)
-    for src, dst, bytes in data:
-        rv[src] += bytes
-        rv[dst] += bytes
-    rv = {ip: bytes for ip, bytes in rv.items()
-          if ipaddress.ip_address(ip).is_private}
-    return dict(rv)
+    with urllib.request.urlopen(url) as response:
+        data = response.read().decode('utf-8')
+        data = data.splitlines()
+        data = [l.split() for l in data if l]
+        # just [src, dst, bytes]
+        data = [l[:2] + [float(l[2])] for l in data]
+        # sum bytes by ip
+        rv = defaultdict(int)
+        for src, dst, bytes in data:
+            rv[src] += bytes
+            rv[dst] += bytes
+        rv = {ip: bytes for ip, bytes in rv.items()
+              if ipaddress.ip_address(ip).is_private}
+        return dict(rv)
 
 
 def main(print_fn, cb_end=None):
