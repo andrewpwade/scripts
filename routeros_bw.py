@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 """
+Real-time per-ip bandwidth monitor for RouterOS. The absolute
+bits-per-second values are not very accurate but they are useful
+relatively.
+
 ./routeros_bw.py <router_ip>
 
 requires the 'requests' package
