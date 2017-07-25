@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 """
+./routeros_bw.py <router_ip>
+
 requires the 'requests' package
 
 See https://wiki.mikrotik.com/wiki/Manual:IP/Accounting for how to
