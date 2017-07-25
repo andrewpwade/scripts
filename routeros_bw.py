@@ -1,4 +1,11 @@
 #!/usr/bin/env python3
+"""
+requires the 'requests' package
+
+See https://wiki.mikrotik.com/wiki/Manual:IP/Accounting for how to
+configure IP Accounting *AND* web access.
+
+"""
 import time
 import curses
 import requests
