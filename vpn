@@ -1,0 +1,32 @@
+#!/usr/bin/expect -f
+####
+# automate openvpn user/pass interaction
+###
+
+set conf [lindex $argv 0];
+
+set pw [exec /path/to/script that_outputs_password]
+set username "USERNAME"
+
+spawn /usr/bin/sudo /usr/sbin/openvpn "$conf"
+
+expect -r "\[sudo\] .*\: " {
+    interact -o \n return
+}
+
+expect {
+    -r ".*Sorry.*" {
+	# On first password fail, for some reason the interaction with
+	# sudo causes the password to be echoed, so bail out
+	exit
+    }
+    "Enter Auth Username:" {
+	send "$username\n"
+    }
+}
+
+expect -r "Enter Auth Password:" {
+    send "$pw\n"
+}
+
+interact
